@@ -28,44 +28,57 @@ def main():
 
 
 def forward_select(filename):
-    table = pd.read_csv(filename).to_numpy()
+    table = pd.read_csv(filename, sep='\s+', header = None).to_numpy()
     
-    print(table)
+    bestest_features = []
     
-    correct_count = 0
-    
-    best_features = []
-    
-    feature_counter = 0
+    iterative_best_features = []
     
     max_accuracy = 0
     
-    for feature in range(1, len(table[0]) + 1):
-        for c in range(0, len(table[:, 0])):
-            if table[nearest_neighbor_classify(table, feature, best_features, table[c][feature])][0] == table[c][0]:
-                correct_count += 1
+    print(f'Current features: {bestest_features} \n\n')
+    
+    for f in range(1, len(table[0])):
+        best_feature = 0
+        level_max_accuracy = 0
+        for feature in range(1, len(table[0])):
+            correct_count = 0
+            # added = False
+            if feature not in iterative_best_features:
+                for c in range(0, len(table[:, 0])):
+                    if table[nearest_neighbor_classify(table, feature, iterative_best_features, c)][0] == table[c][0]:
+                        correct_count += 1
+
+                accuracy = correct_count/len(table[:, 0])
+
+                print(f'Accuracy for feature {feature}: {accuracy}')
+
+                level_max_accuracy = max(level_max_accuracy, accuracy)
+
+                if level_max_accuracy == accuracy:
+                    best_feature = feature
                 
-        accuracy = correct_count/len(table[:, 0])
-        max_accuracy = max(max_accuracy, accuracy)
+        max_accuracy = max(max_accuracy, level_max_accuracy)
+        iterative_best_features.append(best_feature)
+        if max_accuracy == level_max_accuracy:
+            bestest_features = iterative_best_features.copy()
+        print(f'\n\nCurrent best features: {bestest_features} \n\n')
         
-        if max_accuracy == accuracy and len(best_features) == feature_counter + 1:
-            best_features[feature_counter - 1] = feature
-        elif max_accuracy == accuracy:
-            best_features.append(feature)
-            feature_counter += 1
+    print(f'Best Features: {bestest_features} with Accuracy: {max_accuracy}')
 
 
-def nearest_neighbor_classify(table, feature_num, best_features, curr_feature):
+def nearest_neighbor_classify(table, feature_num, best_features, curr_index):
     min_distance = math.inf
     curr_lowest = 0
     for f in range (0, len(table[:, feature_num])):
-        distance = np.abs(curr_feature - table[f][feature_num])
-        for b in best_features:
-            distance += np.abs(curr_feature - table[f][b])
-        min_distance = min(min_distance, distance)
-        
-        if min_distance == distance:
-            curr_lowest = f
+        if f != curr_index:
+            distance = (table[curr_index][feature_num] - table[f][feature_num])**2
+            for b in best_features:
+                distance += (table[curr_index][b] - table[f][b])**2
+            min_distance = min(min_distance, distance)
+
+            if min_distance == distance:
+                curr_lowest = f
     
     return curr_lowest
     
