@@ -3,7 +3,7 @@
 
 import pandas as pd
 import numpy as np
-import math
+import time
 
 def main():
     dataset = input("Type the number of the dataset you want to run." + "\n\n" + "1) Small dataset" + "\n" + "2) large dataset" + "\n" + "3) Sanity Check 1" + "\n" + "4) Sanity Check 2" + "\n")
@@ -21,10 +21,19 @@ def main():
     
     algorithm = input("Type the number of the algorithm you want to run." + "\n\n" + "1) Forward Select" + "\n" + "2) Backward Elimination" + "\n")
 
+    start = time.time()
+
     if algorithm == "1":
         forward_select(filename)
     elif algorithm == "2":
         backward_elimination(filename)
+        
+    end = time.time()
+    
+    if algorithm == "1":
+        print(f'Time to run forward selection: {round(end - start, 2)} seconds')
+    elif algorithm == "2":
+        print(f'Time to run backward elimination: {round(end - start, 2)} seconds')
 
 
 def forward_select(filename):
@@ -48,9 +57,12 @@ def forward_select(filename):
                     if table[nearest_neighbor_classify(table, feature, iterative_best_features, c, True)][0] == table[c][0]:
                         correct_count += 1               
 
-                accuracy = correct_count/len(table[:, 0])
+                iterative_best_features_cpy = iterative_best_features.copy()
+                iterative_best_features_cpy.append(feature)
+                
+                accuracy = round((correct_count/len(table[:, 0]))*100, 1)
 
-                print(f'Accuracy for feature {feature}: {accuracy}')
+                print(f'Accuracy for feature(s) {iterative_best_features_cpy}: {accuracy}%')
 
                 level_max_accuracy = max(level_max_accuracy, accuracy)
 
@@ -60,12 +72,25 @@ def forward_select(filename):
         max_accuracy = max(max_accuracy, level_max_accuracy)
         iterative_best_features.append(best_feature)
         
+        with open("iterations.txt", "a", encoding="utf-8") as file:
+            file.write(f"Features used: {iterative_best_features} with accuracy: {level_max_accuracy}%\n")
+        
         if max_accuracy == level_max_accuracy:
             bestest_features = iterative_best_features.copy()
             
-        print(f'\n\nCurrent best features: {bestest_features} with current accuracy: {max_accuracy} \n\n')
-        
-    print(f'Best Features: {bestest_features} with Accuracy: {max_accuracy}')
+        print(f'\n\nCurrent best features: {bestest_features} with current accuracy: {max_accuracy}% \n\n')
+    
+    correct_count = 0
+    
+    for c in range(0, len(table[:, 0])):
+        if table[nearest_neighbor_classify_all_features(table, bestest_features, c)][0] == table[c][0]:
+            correct_count += 1    
+            
+    accuracy = round((correct_count/len(table[:, 0]))*100, 1)
+    
+    print(f'Accuracy for all feature(s) {bestest_features}: {accuracy}% \n\n')
+    
+    print(f'Best Features: {bestest_features} with Accuracy: {max_accuracy}% \n')
 
 
 def backward_elimination(filename):
@@ -81,6 +106,16 @@ def backward_elimination(filename):
     
     print(f'Current features: {bestest_features} \n\n')
     
+    correct_count = 0
+    
+    for c in range(0, len(table[:, 0])):
+        if table[nearest_neighbor_classify_all_features(table, bestest_features, c)][0] == table[c][0]:
+            correct_count += 1    
+            
+    accuracy = round((correct_count/len(table[:, 0]))*100, 1)
+    
+    print(f'Accuracy for all feature(s) {bestest_features}: {accuracy}% \n\n')
+    
     for f in range(1, len(table[0])):
         worst_feature = 0
         level_max_accuracy = 0
@@ -92,9 +127,12 @@ def backward_elimination(filename):
                     if table[nearest_neighbor_classify(table, feature, iterative_best_features, c, False)][0] == table[c][0]:
                         correct_count += 1               
 
-                accuracy = correct_count/len(table[:, 0])
+                iterative_best_features_cpy = iterative_best_features.copy()
+                iterative_best_features_cpy.remove(feature)
+                
+                accuracy = round((correct_count/len(table[:, 0]))*100, 1)
 
-                print(f'Accuracy for feature {feature}: {accuracy}')
+                print(f'Accuracy for feature(s) {iterative_best_features_cpy}: {accuracy}%')
 
                 level_max_accuracy = max(level_max_accuracy, accuracy)
                 # level_min_accuracy = min(level_min_accuracy, accuracy)
@@ -108,13 +146,16 @@ def backward_elimination(filename):
         max_accuracy = max(max_accuracy, level_max_accuracy)
         if max_accuracy == level_max_accuracy:
             bestest_features = iterative_best_features.copy()
-            
-        print(f'\n\nCurrent best features: {bestest_features} with current accuracy: {max_accuracy} \n\n')
+        
+        with open("iterations.txt", "a", encoding="utf-8") as file:
+            file.write(f"Features after elimination: {iterative_best_features} with accuracy: {level_max_accuracy}%\n")
+        
+        print(f'\n\nCurrent best features: {bestest_features} with current accuracy: {max_accuracy}% \n\n')
         
         if len(iterative_best_features) == 1:
             break
         
-    print(f'Best Features: {bestest_features} with Accuracy: {max_accuracy}')
+    print(f'Best Features: {bestest_features} with Accuracy: {max_accuracy}%')
 
 
 def nearest_neighbor_classify(table, feature_num, best_features, curr_index, isForward):
@@ -136,5 +177,19 @@ def nearest_neighbor_classify(table, feature_num, best_features, curr_index, isF
     
     return curr_lowest
     
+
+def nearest_neighbor_classify_all_features(table, features_check, curr_index):
+    np_features_check = np.array(features_check)
+    
+    feature_subset = table[:, np_features_check]
+    
+    test_row = feature_subset[curr_index]
+    
+    distances = np.sum((feature_subset - test_row)**2, axis=1)
+    distances[curr_index] = np.inf
+    
+    curr_lowest = np.argmin(distances)
+    
+    return curr_lowest
 
 main() 
