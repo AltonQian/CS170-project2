@@ -17,7 +17,7 @@ def main():
     elif dataset == "3":
         filename = "SanityCheck_DataSet__1.txt"
     elif dataset == "4":
-        filename = "SanityCheck_DataSet__2.txt"
+        filename = "SanityCheckDataSet__2.txt"
     
     algorithm = input("Type the number of the algorithm you want to run." + "\n\n" + "1) Forward Select" + "\n" + "2) Backward Elimination" + "\n")
 
@@ -68,19 +68,24 @@ def forward_select(filename):
 
 
 def nearest_neighbor_classify(table, feature_num, best_features, curr_index):
-    min_distance = math.inf
-    curr_lowest = 0
-    for f in range (0, len(table[:, feature_num])):
-        if f != curr_index:
-            distance = (table[curr_index][feature_num] - table[f][feature_num])**2
-            for b in best_features:
-                distance += (table[curr_index][b] - table[f][b])**2
-            min_distance = min(min_distance, distance)
-
-            if min_distance == distance:
-                curr_lowest = f
+    features_check = best_features.copy()
+    features_check.append(feature_num)
+    
+    np_features_check = np.array(features_check)
+    
+    feature_subset = table[:, np_features_check]
+    
+    test_row = feature_subset[curr_index]
+    
+    distances = np.sum((feature_subset - test_row)**2, axis=1)
+    
+    distances[curr_index] = np.inf
+    
+    curr_lowest = np.argmin(distances)
     
     return curr_lowest
+    
+    
     
     
 main() 
